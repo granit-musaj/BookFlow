@@ -615,6 +615,25 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
     } as T);
   }
 
+  const assistant = path.match(/^\/public\/businesses\/([^/]+)\/assistant$/);
+  if (assistant && method === 'POST') {
+    const date = new Date();
+    date.setDate(date.getDate() + ((5 - date.getDay() + 7) % 7 || 7));
+    const pad = (value: number) => String(value).padStart(2, '0');
+    const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    return json({
+      conversationId: 'demo-assistant',
+      reply: 'Mund të të ofroj Masazh terapeutik me Ana Hoxha. Ja një orë e lirë; konfirmo nëse të shkon.',
+      draft: {
+        serviceId: 'svc-massage',
+        staffId: 'staff-ana',
+        startAt: `${day}T14:00:00.000+02:00`,
+        serviceName: 'Masazh terapeutik',
+        staffName: 'Ana Hoxha',
+      },
+    } as T);
+  }
+
   const publicBook = path.match(/^\/public\/businesses\/([^/]+)\/bookings$/);
   if (publicBook && method === 'POST') {
     return json(createBooking(store, body, user) as T);

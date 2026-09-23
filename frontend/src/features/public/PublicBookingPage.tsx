@@ -8,6 +8,7 @@ import { BrandMark } from '../../shared/ui/BrandMark';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
 import { SlotLedger } from '../../shared/ui/SlotLedger';
 import { ThemeToggle } from '../../shared/ui/ThemeToggle';
+import { AssistantChat } from './AssistantChat';
 
 type PublicService = {
   id: string;
@@ -62,6 +63,7 @@ export function PublicBookingPage() {
     password: '',
   });
   const [done, setDone] = useState(false);
+  const [mode, setMode] = useState<'form' | 'assistant'>('form');
 
   useEffect(() => {
     api<PublicCatalog>(`/public/businesses/${slug}`)
@@ -165,6 +167,23 @@ export function PublicBookingPage() {
 
             {error && <p className="text-danger mt-4 text-sm">{error}</p>}
 
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`chip ${mode === 'form' ? 'chip-on' : ''}`}
+                onClick={() => setMode('form')}
+              >
+                Rezervo vetë
+              </button>
+              <button
+                type="button"
+                className={`chip ${mode === 'assistant' ? 'chip-on' : ''}`}
+                onClick={() => setMode('assistant')}
+              >
+                Pyet asistentin
+              </button>
+            </div>
+
             {done ? (
               <div className="card mt-6 p-8">
                 <h2 className="text-2xl font-semibold">Je në listë</h2>
@@ -175,6 +194,8 @@ export function PublicBookingPage() {
                   Shiko rezervimet e mia
                 </Link>
               </div>
+            ) : mode === 'assistant' ? (
+              <AssistantChat slug={slug} canBook={canBook} onBooked={() => setDone(true)} />
             ) : (
               <>
                 <section className="card mt-6 p-6">

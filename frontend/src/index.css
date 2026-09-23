@@ -325,3 +325,30 @@ a {
 .text-danger {
   color: var(--danger);
 }
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.chat-bubble {
+  max-width: 85%;
+  border-radius: var(--radius);
+  padding: 0.7rem 0.85rem;
+  white-space: pre-wrap;
+}
+
+.chat-bubble-assistant {
+  align-self: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.chat-bubble-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--accent-ink);
+}

@@ -56,7 +56,10 @@ export class AuthService {
     return this.issueAuthResponse(user);
   }
 
-  async refresh(rawRefreshToken: string) {
+  async refresh(rawRefreshToken?: string) {
+    if (!rawRefreshToken) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
     const hash = this.tokens.hashRefreshToken(rawRefreshToken);
     const stored = await this.refreshTokens.findValidByHash(hash);
 

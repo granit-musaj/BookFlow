@@ -6,7 +6,7 @@ import { AuthResponse } from '../../shared/types/auth';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
 
 export function RegisterPage() {
-  const { user, setSession } = useAuth();
+  const { user, ready, setSession } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     firstName: 'Ana',
@@ -17,6 +17,9 @@ export function RegisterPage() {
   });
   const [message, setMessage] = useState('');
 
+  if (!ready) {
+    return null;
+  }
   if (user) {
     return <Navigate to="/app" replace />;
   }

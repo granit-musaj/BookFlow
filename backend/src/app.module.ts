@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -22,6 +23,9 @@ import { HealthController } from './health.controller';
       envFilePath: ['.env', '../.env'],
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ name: 'default', ttl: 60_000, limit: 60 }],
+    }),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -34,6 +38,7 @@ import { HealthController } from './health.controller';
   ],
   controllers: [HealthController],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

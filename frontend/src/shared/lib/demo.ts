@@ -229,9 +229,14 @@ function saveStore(store: Store) {
   sessionStorage.setItem(STORE_KEY, JSON.stringify(store));
 }
 
+let demoUser: PublicUser | null = null;
+
+export function setDemoUser(user: PublicUser | null) {
+  demoUser = user;
+}
+
 function currentUser(): PublicUser | null {
-  const raw = localStorage.getItem('user');
-  return raw ? (JSON.parse(raw) as PublicUser) : null;
+  return demoUser;
 }
 
 function toAuth(user: DemoUser): AuthResponse {

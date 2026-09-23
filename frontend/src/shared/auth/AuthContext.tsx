@@ -1,46 +1,73 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { api, setAccessToken } from '../lib/api';
+import { isDemo, setDemoUser } from '../lib/demo';
 import { AuthResponse, PublicUser } from '../types/auth';
 
 type AuthContextValue = {
   user: PublicUser | null;
+  ready: boolean;
   setSession: (response: AuthResponse) => void;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredUser(): PublicUser | null {
-  const raw = localStorage.getItem('user');
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw) as PublicUser;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<PublicUser | null>(readStoredUser);
+  const [user, setUser] = useState<PublicUser | null>(null);
+  const [ready, setReady] = useState(isDemo());
+
+  useEffect(() => {
+    if (isDemo()) {
+      return;
+    }
+
+    let cancelled = false;
+    api<AuthResponse>('/auth/refresh', { method: 'POST', body: '{}' })
+      .then((response) => {
+        if (!cancelled) {
+          setAccessToken(response.tokens.accessToken);
+          setUser(response.user);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAccessToken(null);
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
+      ready,
       setSession: (response) => {
-        localStorage.setItem('accessToken', response.tokens.accessToken);
-        localStorage.setItem('refreshToken', response.tokens.refreshToken);
-        localStorage.setItem('user', JSON.stringify(response.user));
+        setAccessToken(response.tokens.accessToken);
+        if (isDemo()) {
+          setDemoUser(response.user);
+        }
         setUser(response.user);
       },
       logout: () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        if (isDemo()) {
+          setDemoUser(null);
+        } else {
+          void api('/auth/logout', { method: 'POST', body: '{}' }).catch(() => undefined);
+        }
+        setAccessToken(null);
         setUser(null);
       },
     }),
-    [user],
+    [user, ready],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

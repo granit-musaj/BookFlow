@@ -13,6 +13,6 @@ export type AuthResponse = {
   user: PublicUser;
   tokens: {
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string;
   };
 };

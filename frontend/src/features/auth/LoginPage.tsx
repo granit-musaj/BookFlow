@@ -6,12 +6,15 @@ import { AuthResponse } from '../../shared/types/auth';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
 
 export function LoginPage() {
-  const { user, setSession } = useAuth();
+  const { user, ready, setSession } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('ana@studio.com');
   const [password, setPassword] = useState('password123');
   const [message, setMessage] = useState('');
 
+  if (!ready) {
+    return null;
+  }
   if (user) {
     return <Navigate to="/app" replace />;
   }

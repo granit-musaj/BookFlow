@@ -1,9 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class RefreshDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MinLength(20)
-  refreshToken: string;
+  refreshToken?: string;
 }

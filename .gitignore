@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Prisma
+backend/src/generated/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Docker
+postgres_data/
+redis_data/
+
+# Local deploy metadata
+frontend/.vercel/

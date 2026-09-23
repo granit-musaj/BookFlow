@@ -3,7 +3,9 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../../shared/lib/api';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { AuthResponse } from '../../shared/types/auth';
+import { BrandMark } from '../../shared/ui/BrandMark';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
+import { ThemeToggle } from '../../shared/ui/ThemeToggle';
 
 export function LoginPage() {
   const { user, ready, setSession } = useAuth();
@@ -35,13 +37,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--cream)]">
+    <div className="page-shell">
       <DemoBanner />
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--gold)]" />
-          BookFlow
-        </Link>
+        <div className="flex items-center justify-between">
+          <BrandMark />
+          <ThemeToggle />
+        </div>
         <h1 className="page-title mt-6">Mirë se u ktheve</h1>
         <form onSubmit={onSubmit} className="card mt-6 flex flex-col gap-3 p-6">
           <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -54,7 +56,7 @@ export function LoginPage() {
           </Link>
           <p className="muted text-xs">Provë: ana@studio.com, mira@studio.com ose elira@email.com — password123</p>
         </form>
-        {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+        {message && <p className="text-danger mt-4 text-sm">{message}</p>}
         <Link to="/register" className="mt-6 text-sm">
           Hap një llogari studioje
         </Link>

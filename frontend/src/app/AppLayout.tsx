@@ -4,7 +4,9 @@ import { NotificationBell } from '../features/notifications/NotificationBell';
 import { api } from '../shared/lib/api';
 import { useAuth } from '../shared/auth/AuthContext';
 import { Business } from '../shared/types/domain';
+import { BrandMark } from '../shared/ui/BrandMark';
 import { DemoBanner } from '../shared/ui/DemoBanner';
+import { ThemeToggle } from '../shared/ui/ThemeToggle';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `side-link ${isActive ? 'side-link-on' : ''}`;
@@ -21,17 +23,14 @@ export function AppLayout() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--cream)] md:flex">
-      <aside className="bg-[var(--navy)] px-5 py-6 text-white md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--gold)]" />
-          <span className="text-lg font-semibold">BookFlow</span>
-        </div>
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <BrandMark to="/app" light />
         <div className="mt-8">
-          <p className="text-lg font-medium">{business?.name ?? 'Studio'}</p>
-          <p className="mt-1 text-sm text-white/45">Masazh & Jogë · Tiranë</p>
+          <p className="sidebar-studio">{business?.name ?? 'Studio'}</p>
+          <p className="sidebar-kicker mt-1 text-sm">Masazh & Jogë · Tiranë</p>
         </div>
-        <nav className="mt-8 flex flex-col gap-1">
+        <nav className="app-nav">
           <NavLink to="/app" end className={linkClass}>
             Përmbledhje
           </NavLink>
@@ -53,12 +52,12 @@ export function AppLayout() {
           )}
           <NotificationBell />
         </nav>
-        <div className="mt-8 text-sm text-white/50 md:mt-auto">
+        <div className="sidebar-foot sidebar-meta mt-8 text-sm">
           <p>
             {user?.firstName} {user?.lastName}
           </p>
           <button
-            className="mt-2 text-white/80"
+            className="sidebar-action mt-2"
             type="button"
             onClick={() => {
               logout();
@@ -67,11 +66,14 @@ export function AppLayout() {
           >
             Dil
           </button>
+          <div className="mt-3">
+            <ThemeToggle />
+          </div>
           <DemoBanner tone="dark" />
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="app-main">
         <main className="px-5 py-6 md:px-8 md:py-8 lg:px-10">
           <Outlet />
         </main>

@@ -1,8 +1,11 @@
 import { FormEvent, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { DEMO_SLUG, demoClientAuth, demoOwnerAuth, enableDemo } from '../../shared/lib/demo';
+import { BrandMark } from '../../shared/ui/BrandMark';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
+import { ThemeToggle } from '../../shared/ui/ThemeToggle';
 
 export function HomePage() {
   const { user, setSession } = useAuth();
@@ -19,25 +22,23 @@ export function HomePage() {
 
   function openOwnerPreview() {
     enableDemo();
-    setSession(demoOwnerAuth());
+    flushSync(() => setSession(demoOwnerAuth()));
     navigate('/app/bookings');
   }
 
   function openClientPreview() {
     enableDemo();
-    setSession(demoClientAuth());
+    flushSync(() => setSession(demoClientAuth()));
     navigate(`/b/${DEMO_SLUG}`);
   }
 
   return (
-    <div className="min-h-screen bg-[var(--cream)]">
+    <div className="page-shell">
       <DemoBanner />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <span className="flex items-center gap-2 text-lg font-semibold">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--gold)]" />
-          BookFlow
-        </span>
-        <nav className="flex gap-3 text-sm">
+        <BrandMark />
+        <nav className="flex items-center gap-3 text-sm">
+          <ThemeToggle />
           {user ? (
             <Link className="btn btn-primary" to="/app">
               Paneli

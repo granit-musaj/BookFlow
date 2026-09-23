@@ -1,7 +1,9 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../shared/lib/api';
+import { BrandMark } from '../../shared/ui/BrandMark';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
+import { ThemeToggle } from '../../shared/ui/ThemeToggle';
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -25,13 +27,13 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--cream)]">
+    <div className="page-shell">
       <DemoBanner />
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--gold)]" />
-          BookFlow
-        </Link>
+        <div className="flex items-center justify-between">
+          <BrandMark />
+          <ThemeToggle />
+        </div>
         <h1 className="page-title mt-6">Fjalëkalim i ri</h1>
         {!token ? (
           <p className="muted mt-6 text-sm">Lidhja e rivendosjes mungon ose është e pavlefshme.</p>
@@ -51,7 +53,7 @@ export function ResetPasswordPage() {
             </button>
           </form>
         )}
-        {message && <p className="mt-4 text-sm text-red-700">{message}</p>}
+        {message && <p className="text-danger mt-4 text-sm">{message}</p>}
         <Link to="/login" className="mt-6 text-sm">
           Kthehu te hyrja
         </Link>

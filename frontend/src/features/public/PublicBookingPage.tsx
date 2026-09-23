@@ -4,7 +4,10 @@ import { api } from '../../shared/lib/api';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { AuthResponse } from '../../shared/types/auth';
 import { formatDayMonth, formatMoney, formatTime } from '../../shared/types/domain';
+import { BrandMark } from '../../shared/ui/BrandMark';
 import { DemoBanner } from '../../shared/ui/DemoBanner';
+import { SlotLedger } from '../../shared/ui/SlotLedger';
+import { ThemeToggle } from '../../shared/ui/ThemeToggle';
 
 type PublicService = {
   id: string;
@@ -131,16 +134,16 @@ export function PublicBookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--cream)]">
+    <div className="page-shell">
       <DemoBanner />
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
-        <Link to="/" className="flex items-center gap-2 text-lg font-semibold">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--gold)]" />
-          BookFlow
-        </Link>
-        <Link to="/app" className="muted text-sm">
-          Hyr si staf
-        </Link>
+        <BrandMark />
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <Link to="/app" className="muted text-sm">
+            Hyr si staf
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 pb-16">
@@ -160,7 +163,7 @@ export function PublicBookingPage() {
             <h1 className="page-title mt-1">Rezervo një seancë</h1>
             <p className="muted mt-2">Oraret janë në {catalog.business.timezone}</p>
 
-            {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
+            {error && <p className="text-danger mt-4 text-sm">{error}</p>}
 
             {done ? (
               <div className="card mt-6 p-8">
@@ -188,8 +191,10 @@ export function PublicBookingPage() {
                           <span>
                             <span className="flex items-center gap-3 font-medium">
                               <span
-                                className={`h-4 w-4 rounded-full border ${
-                                  serviceId === service.id ? 'border-[var(--navy)] bg-[var(--navy)]' : 'border-[#cfc8bb]'
+                                className={`h-3.5 w-3.5 rounded-sm border ${
+                                  serviceId === service.id
+                                    ? 'border-[var(--accent)] bg-[var(--accent)]'
+                                    : 'border-[var(--line)]'
                                 }`}
                               />
                               {service.name}
@@ -229,18 +234,17 @@ export function PublicBookingPage() {
                       </button>
                     ))}
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {slots.map((slot) => (
-                      <button
-                        key={slot}
-                        type="button"
-                        className={`chip ${startAt === slot ? 'chip-on' : ''}`}
-                        onClick={() => setStartAt(slot)}
-                      >
-                        {formatTime(slot)}
-                      </button>
-                    ))}
-                    {slots.length === 0 && <p className="muted text-sm">Nuk ka orare të lira këtë ditë.</p>}
+                  <div className="mt-4">
+                    {slots.length === 0 ? (
+                      <p className="muted text-sm">Nuk ka orare të lira këtë ditë.</p>
+                    ) : (
+                      <SlotLedger
+                        slots={slots}
+                        selected={startAt}
+                        onSelect={setStartAt}
+                        label={formatTime}
+                      />
+                    )}
                   </div>
                 </section>
 
@@ -283,7 +287,7 @@ export function PublicBookingPage() {
                     </form>
                   )}
                   <button
-                    className="btn btn-primary mt-5 w-full disabled:opacity-40"
+                    className="btn btn-confirm mt-5 w-full"
                     type="button"
                     disabled={!canBook || !startAt || !serviceId || !staffId}
                     onClick={onBook}

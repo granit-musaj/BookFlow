@@ -46,7 +46,7 @@ export function ClientsPage() {
   return (
     <section>
       <PageHeader title="Klientët" subtitle="Lista e njerëzve që rezervojnë te studioja." />
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
 
       <form onSubmit={onCreate} className="card grid gap-3 p-6 sm:grid-cols-2">
         <input className="input" placeholder="Emri" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />

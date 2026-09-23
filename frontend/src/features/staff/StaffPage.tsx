@@ -100,7 +100,7 @@ export function StaffPage() {
   return (
     <section>
       <PageHeader title="Stafi" subtitle="Kush ofron shërbimet dhe kur janë të lirë." />
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
 
       {user?.role === 'OWNER' && (
         <form onSubmit={onCreate} className="card mb-5 grid gap-3 p-6 sm:grid-cols-2">
@@ -143,7 +143,7 @@ export function StaffPage() {
             <li key={row.id}>
               <button
                 type="button"
-                className={`w-full px-5 py-4 text-left text-sm ${selectedId === row.id ? 'bg-[var(--cream)]' : ''}`}
+                className={`w-full px-5 py-4 text-left text-sm ${selectedId === row.id ? 'row-selected' : ''}`}
                 onClick={() => setSelectedId(row.id)}
               >
                 {row.displayName}
@@ -194,7 +194,7 @@ export function StaffPage() {
                     {WEEKDAYS[window.dayOfWeek]} {window.startTime}–{window.endTime}
                   </span>
                   {canEditHours && (
-                    <button className="text-red-700" type="button" onClick={() => removeWindow(window.id)}>
+                    <button className="text-danger" type="button" onClick={() => removeWindow(window.id)}>
                       Hiq
                     </button>
                   )}

@@ -1,15 +1,5 @@
 @import "tailwindcss";
-
-:root {
-  --navy: #0b1220;
-  --navy-soft: #151d2e;
-  --cream: #f3f1ec;
-  --paper: #ffffff;
-  --ink: #1a1a1a;
-  --muted: #8a8680;
-  --line: #eceae4;
-  --gold: #e0b84e;
-}
+@import "./shared/styles/tokens.css";
 
 * {
   box-sizing: border-box;
@@ -18,9 +8,18 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--cream);
+  background: var(--paper);
   color: var(--ink);
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+.page-title,
+.stat-value,
+.brand-name {
+  font-family: var(--font-serif);
 }
 
 a {
@@ -28,50 +27,167 @@ a {
   text-decoration: none;
 }
 
+.page-shell {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.app-sidebar {
+  background: var(--sidebar);
+  color: var(--on-sidebar);
+  padding: 1.2rem 1.1rem;
+}
+
+.sidebar-studio {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+}
+
+.sidebar-kicker,
+.sidebar-meta {
+  color: color-mix(in srgb, var(--on-sidebar) 48%, transparent);
+}
+
+.sidebar-action {
+  color: color-mix(in srgb, var(--on-sidebar) 80%, transparent);
+}
+
+.app-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 1.5rem;
+}
+
+.app-main {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 819px) {
+  .app-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    margin-top: 1rem;
+    overflow-x: auto;
+  }
+
+  .side-link {
+    border-radius: 999px;
+    white-space: nowrap;
+    padding: 0.45rem 0.85rem;
+  }
+}
+
+@media (min-width: 820px) {
+  .app-shell {
+    display: flex;
+  }
+
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    height: 100vh;
+    width: 15.5rem;
+    flex-shrink: 0;
+    flex-direction: column;
+  }
+
+  .sidebar-foot {
+    margin-top: auto;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.brand-mark {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.brand-name {
+  font-size: 1.05rem;
+  font-weight: 560;
+}
+
+.brand-light {
+  color: var(--on-sidebar);
+}
+
 .input {
   width: 100%;
-  border-radius: 1.25rem;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: var(--paper);
-  padding: 0.85rem 1rem;
+  background: var(--panel);
+  padding: 0.8rem 0.95rem;
   color: var(--ink);
+  font-family: var(--font-sans);
   outline: none;
 }
 
 .input:focus {
-  border-color: #cfc8bb;
+  border-color: var(--accent);
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  padding: 0.75rem 1.2rem;
-  font-weight: 600;
+  border-radius: var(--radius);
+  padding: 0.7rem 1.1rem;
+  font-family: var(--font-sans);
+  font-weight: 560;
   border: 0;
   cursor: pointer;
 }
 
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .btn-primary {
-  background: var(--navy);
-  color: white;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn-confirm {
+  background: var(--confirm);
+  color: #fff;
 }
 
 .btn-ghost {
-  background: var(--paper);
+  background: var(--panel);
   color: var(--ink);
   border: 1px solid var(--line);
 }
 
 .card {
-  background: var(--paper);
-  border-radius: 1.6rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: none;
 }
 
-.stat-value {
+.stat-strip .stat-value {
   font-size: 1.6rem;
-  font-weight: 600;
+  font-weight: 560;
   letter-spacing: -0.02em;
 }
 
@@ -82,20 +198,22 @@ a {
 }
 
 .chip {
-  border-radius: 999px;
-  background: var(--paper);
-  padding: 0.55rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.5rem 0.9rem;
   font-size: 0.92rem;
 }
 
 .chip-on {
-  background: var(--navy);
-  color: white;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
 }
 
 .page-title {
   font-size: 2rem;
-  font-weight: 650;
+  font-weight: 560;
   letter-spacing: -0.03em;
 }
 
@@ -104,8 +222,8 @@ a {
 }
 
 .banner-demo {
-  background: #fff6d8;
-  color: #6a4b00;
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  color: var(--accent-ink);
   font-size: 0.78rem;
   padding: 0.45rem 1rem;
   text-align: center;
@@ -113,20 +231,97 @@ a {
 
 .side-link {
   display: block;
-  border-radius: 0.9rem;
-  padding: 0.7rem 0.9rem;
-  color: rgba(255, 255, 255, 0.62);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.8rem;
+  color: color-mix(in srgb, var(--on-sidebar) 62%, transparent);
 }
 
 .side-link-on {
-  background: var(--navy-soft);
-  color: white;
+  background: color-mix(in srgb, var(--on-sidebar) 8%, transparent);
+  color: var(--on-sidebar);
+}
+
+.sidebar-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
 }
 
 .status-pill {
-  border-radius: 999px;
-  background: #f3f1ec;
-  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.7rem;
   font-size: 0.8rem;
-  color: #5c5852;
+  color: var(--muted);
+}
+
+.status-pill[data-status="CONFIRMED"] {
+  background: var(--confirm);
+  color: #fff;
+  border-color: var(--confirm);
+}
+
+.status-pill[data-status="CANCELLED"] {
+  color: var(--danger);
+}
+
+.slot-ledger {
+  display: flex;
+  flex-direction: column;
+}
+
+.slot-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.35rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slot-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.slot-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.slot-row.is-taken {
+  text-decoration: line-through;
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.slot-row.is-selected {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.slot-row.is-selected .slot-meta {
+  color: var(--accent-ink);
+}
+
+.row-selected {
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+}
+
+.theme-toggle {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  opacity: 0.7;
+}
+
+.text-danger {
+  color: var(--danger);
 }

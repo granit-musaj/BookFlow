@@ -11,8 +11,8 @@ export function Clock() {
 
   return (
     <div className="text-right leading-tight">
-      <p className="muted text-sm capitalize">{formatClockDate(now)}</p>
-      <p className="mt-1 text-lg tabular-nums">{formatClockTime(now)}</p>
+      <p className="muted text-sm">{formatClockDate(now)}</p>
+      <p className="stat-value mt-1 text-lg tabular-nums">{formatClockTime(now)}</p>
     </div>
   );
 }

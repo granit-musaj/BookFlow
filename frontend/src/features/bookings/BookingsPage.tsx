@@ -16,6 +16,7 @@ import {
   STATUS_LABEL,
 } from '../../shared/types/domain';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { SlotLedger } from '../../shared/ui/SlotLedger';
 
 const SLOT_TIMES = ['09:00', '10:00', '11:00', '12:30', '14:00', '15:30', '17:00', '18:00'];
 
@@ -94,6 +95,20 @@ export function BookingsPage() {
     [bookings],
   );
 
+  const takenSlots = useMemo(() => {
+    const day = new Date(`${date}T12:00:00`);
+    return new Set(
+      bookings
+        .filter(
+          (row) =>
+            row.status !== 'CANCELLED' &&
+            isSameDay(row.startAt, day) &&
+            (!staffId || row.staff.id === staffId),
+        )
+        .map((row) => formatTime(row.startAt)),
+    );
+  }, [bookings, date, staffId]);
+
   const stats = useMemo(() => {
     const hours = todayBookings.map((row) => formatTime(row.startAt));
     const hourCounts = hours.reduce<Record<string, number>>((acc, hour) => {
@@ -165,17 +180,17 @@ export function BookingsPage() {
         }
       />
 
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="stat-strip mb-6 grid gap-4 md:grid-cols-3">
         {[
           [String(stats.count), 'Rezervime sot'],
           [stats.popular, 'Ora më e kërkuar'],
           [formatMoney(stats.value), 'Vlera e ditës'],
         ].map(([value, label]) => (
           <div key={label} className="card px-6 py-5">
-            <p className="text-3xl font-semibold tracking-tight">{value}</p>
-            <p className="muted mt-1 text-sm">{label}</p>
+            <p className="stat-value">{value}</p>
+            <p className="stat-label">{label}</p>
           </div>
         ))}
       </div>
@@ -197,8 +212,8 @@ export function BookingsPage() {
                   <span>
                     <span className="flex items-center gap-3 font-medium">
                       <span
-                        className={`h-4 w-4 rounded-full border ${
-                          serviceId === service.id ? 'border-[var(--navy)] bg-[var(--navy)]' : 'border-[#cfc8bb]'
+                        className={`h-3.5 w-3.5 rounded-sm border ${
+                          serviceId === service.id ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)]'
                         }`}
                       />
                       {service.name}
@@ -225,11 +240,13 @@ export function BookingsPage() {
                   </p>
                 </div>
                 {user?.role !== 'CLIENT' && booking.status === 'PENDING' ? (
-                  <button className="status-pill" type="button" onClick={() => confirm(booking.id)}>
+                  <button className="btn btn-confirm" type="button" onClick={() => confirm(booking.id)}>
                     Konfirmo
                   </button>
                 ) : (
-                  <span className="status-pill">{STATUS_LABEL[booking.status]}</span>
+                  <span className="status-pill" data-status={booking.status}>
+                    {STATUS_LABEL[booking.status]}
+                  </span>
                 )}
               </li>
             ))}
@@ -275,17 +292,8 @@ export function BookingsPage() {
             );
           })}
         </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {SLOT_TIMES.map((slot) => (
-            <button
-              key={slot}
-              type="button"
-              className={`chip ${time === slot ? 'chip-on' : ''}`}
-              onClick={() => setTime(slot)}
-            >
-              {slot}
-            </button>
-          ))}
+        <div className="mt-4">
+          <SlotLedger slots={SLOT_TIMES} selected={time} taken={takenSlots} onSelect={setTime} />
         </div>
       </div>
 
@@ -307,8 +315,8 @@ export function BookingsPage() {
                 >
                   <span className="flex items-center gap-3">
                     <span
-                      className={`h-4 w-4 rounded-full border ${
-                        clientId === client.id ? 'border-[var(--navy)] bg-[var(--navy)]' : 'border-[#cfc8bb]'
+                      className={`h-3.5 w-3.5 rounded-sm border ${
+                        clientId === client.id ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)]'
                       }`}
                     />
                     <span className="font-medium">{shortName(client.firstName, client.lastName)}</span>
@@ -319,7 +327,7 @@ export function BookingsPage() {
             ))}
           </ul>
         )}
-        <button className="btn btn-primary mt-5" type="button" onClick={createBooking} disabled={!time || !serviceId}>
+        <button className="btn btn-confirm mt-5" type="button" onClick={createBooking} disabled={!time || !serviceId}>
           Krijo rezervimin
         </button>
       </div>
@@ -333,17 +341,19 @@ export function BookingsPage() {
               </p>
               <p className="muted text-sm">
                 {formatTime(booking.startAt)} · {shortName(booking.client.firstName, booking.client.lastName)} ·{' '}
-                {STATUS_LABEL[booking.status]}
+                <span className="status-pill" data-status={booking.status}>
+                  {STATUS_LABEL[booking.status]}
+                </span>
               </p>
             </div>
             <div className="flex gap-2 text-sm">
               {user?.role !== 'CLIENT' && booking.status === 'PENDING' && (
-                <button className="status-pill" type="button" onClick={() => confirm(booking.id)}>
+                <button className="btn btn-confirm" type="button" onClick={() => confirm(booking.id)}>
                   Konfirmo
                 </button>
               )}
               {booking.status !== 'CANCELLED' && (
-                <button className="text-red-700" type="button" onClick={() => cancel(booking.id)}>
+                <button className="text-danger" type="button" onClick={() => cancel(booking.id)}>
                   Anulo
                 </button>
               )}

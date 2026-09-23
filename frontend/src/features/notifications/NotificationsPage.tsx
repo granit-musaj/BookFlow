@@ -49,7 +49,7 @@ export function NotificationsPage() {
           )
         }
       />
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
       <ul className="card divide-y divide-[var(--line)]">
         {items.map((item) => (
           <li key={item.id} className={`px-6 py-4 ${item.readAt ? 'opacity-60' : ''}`}>

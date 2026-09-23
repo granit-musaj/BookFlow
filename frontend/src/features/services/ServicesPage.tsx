@@ -54,7 +54,7 @@ export function ServicesPage() {
   return (
     <section>
       <PageHeader title="Shërbimet" subtitle="Çfarë ofron studioja dhe sa kushton." />
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
 
       {user?.role === 'OWNER' && (
         <form onSubmit={onCreate} className="card grid gap-3 p-6 sm:grid-cols-4">

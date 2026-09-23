@@ -53,7 +53,7 @@ export function DashboardPage() {
         title="Përmbledhje"
         subtitle={`Mirë se erdhe${user?.firstName ? `, ${user.firstName}` : ''}. Ja si duket dita në ${business?.name ?? 'studio'}.`}
       />
-      {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
+      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
       {user?.role === 'OWNER' && <DashboardStatsSection />}
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[1.4fr_0.9fr]">
@@ -69,7 +69,9 @@ export function DashboardPage() {
                     {booking.service.name} · {formatTime(booking.startAt)}
                   </p>
                 </div>
-                <span className="status-pill">{STATUS_LABEL[booking.status]}</span>
+                <span className="status-pill" data-status={booking.status}>
+                  {STATUS_LABEL[booking.status]}
+                </span>
               </li>
             ))}
             {todayBookings.length === 0 && <li className="muted py-4 text-sm">Nuk ka rezervime sot.</li>}
@@ -91,9 +93,9 @@ export function DashboardPage() {
           </div>
           <div className="card p-6">
             <p className="muted text-sm">Shërbime aktive</p>
-            <p className="mt-2 text-3xl font-semibold">{services.filter((row) => row.isActive).length}</p>
+            <p className="stat-value mt-2">{services.filter((row) => row.isActive).length}</p>
             <p className="muted mt-4 text-sm">Staf aktiv</p>
-            <p className="mt-2 text-3xl font-semibold">{staff.filter((row) => row.isActive).length}</p>
+            <p className="stat-value mt-2">{staff.filter((row) => row.isActive).length}</p>
           </div>
         </div>
       </div>

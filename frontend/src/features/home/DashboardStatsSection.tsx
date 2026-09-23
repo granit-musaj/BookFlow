@@ -21,7 +21,7 @@ export function DashboardStatsSection() {
 
   return (
     <section className="stat-strip mb-6">
-      {error && <p className="mb-3 text-sm text-[var(--danger)]">{error}</p>}
+      {error && <p className="text-danger mb-3 text-sm">{error}</p>}
       <div className="grid gap-4 md:grid-cols-4">
         {items.map(([value, label]) => (
           <div key={label} className="card px-6 py-5">

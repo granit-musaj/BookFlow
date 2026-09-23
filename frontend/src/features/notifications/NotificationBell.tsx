@@ -40,7 +40,7 @@ export function NotificationBell() {
       <span className="flex items-center justify-between">
         Njoftime
         {count > 0 && (
-          <span className="rounded-full bg-white/15 px-2 text-[11px] text-white">
+          <span className="sidebar-count">
             {count > 9 ? '9+' : count}
           </span>
         )}

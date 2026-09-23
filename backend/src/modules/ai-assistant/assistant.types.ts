@@ -37,13 +37,28 @@ export type LlmResponse = {
   toolCalls: LlmToolCall[];
 };
 
+export type LlmStreamEvent =
+  | { type: 'token'; text: string }
+  | { type: 'result'; response: LlmResponse };
+
 export interface LlmClient {
   complete(input: {
     system: string;
     messages: LlmMessage[];
     tools: LlmTool[];
   }): Promise<LlmResponse>;
+  stream?(input: {
+    system: string;
+    messages: LlmMessage[];
+    tools: LlmTool[];
+  }): AsyncIterable<LlmStreamEvent>;
 }
+
+export type AssistantEvent =
+  | { type: 'token'; text: string }
+  | { type: 'draft'; draft: BookingDraft }
+  | { type: 'done'; conversationId: string; reply: string; draft: BookingDraft | null }
+  | { type: 'error'; message: string };
 
 export const LLM_CLIENT = Symbol('LLM_CLIENT');
 

@@ -3,11 +3,14 @@ import { PublicCatalogService } from '../public/public.service';
 import { ASSISTANT_SYSTEM_PROMPT } from './assistant.prompt';
 import { ASSISTANT_TOOLS } from './assistant.tools';
 import {
+  AssistantEvent,
   AssistantReply,
   BookingDraft,
   FALLBACK_REPLY,
   LLM_CLIENT,
   LlmClient,
+  LlmMessage,
+  LlmResponse,
 } from './assistant.types';
 import { ConversationStore } from './conversation.store';
 
@@ -22,8 +25,30 @@ export class AiAssistantService {
   ) {}
 
   async reply(slug: string, message: string, conversationId?: string): Promise<AssistantReply> {
+    let done: AssistantReply | null = null;
+    for await (const event of this.streamReply(slug, message, conversationId)) {
+      if (event.type === 'done') {
+        done = {
+          conversationId: event.conversationId,
+          reply: event.reply,
+          draft: event.draft,
+        };
+      }
+      if (event.type === 'error') {
+        throw new ServiceUnavailableException(event.message);
+      }
+    }
+    return done ?? { conversationId: conversationId ?? '', reply: FALLBACK_REPLY, draft: null };
+  }
+
+  async *streamReply(
+    slug: string,
+    message: string,
+    conversationId?: string,
+  ): AsyncGenerator<AssistantEvent> {
     if (!this.llm) {
-      throw new ServiceUnavailableException(FALLBACK_REPLY);
+      yield { type: 'error', message: FALLBACK_REPLY };
+      return;
     }
 
     const conversation = this.conversations.getOrCreate(slug, conversationId);
@@ -31,16 +56,18 @@ export class AiAssistantService {
 
     try {
       for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-        const turn = await this.llm.complete({
-          system: ASSISTANT_SYSTEM_PROMPT,
-          messages: conversation.messages,
-          tools: ASSISTANT_TOOLS,
-        });
+        const turn = yield* this.nextTurn(conversation.messages);
 
         if (turn.toolCalls.length === 0) {
           const reply = turn.text || FALLBACK_REPLY;
           conversation.messages.push({ role: 'assistant', content: reply });
-          return { conversationId: conversation.id, reply, draft: conversation.draft };
+          yield {
+            type: 'done',
+            conversationId: conversation.id,
+            reply,
+            draft: conversation.draft,
+          };
+          return;
         }
 
         conversation.messages.push({
@@ -53,6 +80,7 @@ export class AiAssistantService {
           const result = await this.executeTool(slug, call.name, call.input);
           if (result.draft) {
             conversation.draft = result.draft;
+            yield { type: 'draft', draft: result.draft };
           }
           conversation.messages.push({
             role: 'tool',
@@ -63,13 +91,43 @@ export class AiAssistantService {
       }
 
       conversation.messages.push({ role: 'assistant', content: FALLBACK_REPLY });
-      return { conversationId: conversation.id, reply: FALLBACK_REPLY, draft: conversation.draft };
-    } catch (error) {
-      if (error instanceof ServiceUnavailableException) {
-        throw error;
-      }
-      return { conversationId: conversation.id, reply: FALLBACK_REPLY, draft: conversation.draft };
+      yield {
+        type: 'done',
+        conversationId: conversation.id,
+        reply: FALLBACK_REPLY,
+        draft: conversation.draft,
+      };
+    } catch {
+      yield { type: 'error', message: FALLBACK_REPLY };
     }
+  }
+
+  private async *nextTurn(messages: LlmMessage[]): AsyncGenerator<AssistantEvent, LlmResponse> {
+    const request = {
+      system: ASSISTANT_SYSTEM_PROMPT,
+      messages,
+      tools: ASSISTANT_TOOLS,
+    };
+
+    if (this.llm?.stream) {
+      let result: LlmResponse | null = null;
+      for await (const event of this.llm.stream(request)) {
+        if (event.type === 'token') {
+          yield event;
+        } else {
+          result = event.response;
+        }
+      }
+      if (result) {
+        return result;
+      }
+    }
+
+    const turn = await this.llm!.complete(request);
+    if (turn.toolCalls.length === 0 && turn.text) {
+      yield { type: 'token', text: turn.text };
+    }
+    return turn;
   }
 
   async executeTool(

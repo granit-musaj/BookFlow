@@ -5,6 +5,8 @@ export const REFRESH_COOKIE = 'refreshToken';
 export function refreshCookieOptions(): CookieOptions {
   return {
     httpOnly: true,
+    // Browsers drop Secure cookies on plain HTTP. In production the API must be HTTPS
+    // or login/refresh fails silently after the first 15 minutes.
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/api/auth',

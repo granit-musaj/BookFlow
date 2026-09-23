@@ -1,5 +1,7 @@
 # BookFlow
 
+![CI](https://github.com/<user>/<repo>/actions/workflows/ci.yml/badge.svg)
+
 Multi-tenant SaaS for small businesses to manage bookings, staff, and clients.
 
 **Stack:** NestJS · React · PostgreSQL · Prisma · Redis · Docker
@@ -27,6 +29,14 @@ cd backend
 npx prisma migrate deploy
 npm run start:dev
 ```
+
+## Before going live
+
+- [ ] Replace the CI badge `<user>/<repo>` above with the real GitHub repository.
+- [ ] Serve the API over **HTTPS** in production. `refreshCookieOptions()` sets `secure: true` when `NODE_ENV=production`. On HTTP the browser ignores the `httpOnly` refresh cookie, so login looks successful and then silently dies on the next `/auth/refresh`.
+- [ ] Point `FRONTEND_URL` at the real SPA origin (CORS + password-reset links).
+- [ ] Rotate `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`.
+- [ ] Backend CI already runs `npm run test:e2e` (`backend/package.json` → `vitest.e2e.config.ts`).
 
 ## Public booking
 

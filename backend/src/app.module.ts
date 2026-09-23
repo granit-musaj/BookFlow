@@ -14,6 +14,7 @@ import { StaffModule } from './modules/staff/staff.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PublicModule } from './modules/public/public.module';
+import { AiAssistantModule } from './modules/ai-assistant/ai-assistant.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -35,6 +36,7 @@ import { HealthController } from './health.controller';
     BookingsModule,
     NotificationsModule,
     PublicModule,
+    AiAssistantModule,
   ],
   controllers: [HealthController],
   providers: [

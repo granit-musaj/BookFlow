@@ -10,5 +10,6 @@ import { PublicCatalogService } from './public.service';
   imports: [BusinessesModule, ServicesModule, StaffModule, BookingsModule],
   controllers: [PublicController],
   providers: [PublicCatalogService],
+  exports: [PublicCatalogService],
 })
 export class PublicModule {}

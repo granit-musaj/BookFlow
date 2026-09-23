@@ -14,6 +14,7 @@ export type AppEnv = {
   PORT: number;
   FRONTEND_URL: string;
   NODE_ENV: string;
+  ANTHROPIC_API_KEY?: string;
 };
 
 export function validateEnv(raw: Record<string, unknown>): AppEnv {
@@ -45,5 +46,8 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     PORT: Number(raw.PORT ?? 3000),
     FRONTEND_URL: String(raw.FRONTEND_URL ?? 'http://localhost:5173'),
     NODE_ENV: String(raw.NODE_ENV ?? 'development'),
+    ANTHROPIC_API_KEY: raw.ANTHROPIC_API_KEY
+      ? String(raw.ANTHROPIC_API_KEY)
+      : undefined,
   };
 }

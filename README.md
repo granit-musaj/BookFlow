@@ -47,6 +47,7 @@ Clients open `/b/:slug` (also linked from the owner dashboard).
 | GET | `/api/public/businesses/:slug` | Public catalog (no emails) |
 | GET | `/api/public/businesses/:slug/slots` | Public — `serviceId`, `staffId`, `date=YYYY-MM-DD` |
 | POST | `/api/public/businesses/:slug/bookings` | Client of that tenant only |
+| POST | `/api/public/businesses/:slug/assistant` | Public — JSON or SSE (`Accept: text/event-stream`) |
 
 ## Domain API
 
@@ -102,6 +103,14 @@ Staff accounts are not self-registered. An Owner will create them later.
 | `modules/notifications` | In-app rows first, then BullMQ email + delayed reminders |
 
 Reminders: on confirm, BookFlow enqueues BullMQ jobs `24h` and `1h` before `startAt`. If that window already passed but the appointment is still upcoming, the reminder is sent immediately. Cancel removes the delayed jobs. If Redis is down, the HTTP request still succeeds.
+
+## AI Assistant
+
+On `/b/:slug`, clients can switch **Pyet asistentin**. The model only orchestrates existing `PublicCatalogService` methods (`catalog`, `slots`). It never writes a booking. The UI confirms with `POST /api/public/businesses/:slug/bookings`, so tenant checks and the double-booking constraint stay in the normal path.
+
+- Set `ANTHROPIC_API_KEY` in `.env` when you want live replies. The key is optional: the API still boots without it and the assistant endpoint returns **503** plus a fallback that points at **Rezervo vetë**.
+- Rate limit: **10 requests / minute** on the assistant route (stricter than the global 60/min).
+- SSE events: `token`, `draft` (service/staff/startAt for the confirm card), `done`, `error`.
 
 ## Playwright
 

@@ -51,6 +51,8 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm test
       - run: npm run typecheck
+      - run: npm run test:e2e
+      - run: npm run test:e2e
 
   frontend:
     runs-on: ubuntu-latest

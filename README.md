@@ -95,7 +95,7 @@ Reminders: on confirm, BookFlow enqueues BullMQ jobs `24h` and `1h` before `star
 
 ## Playwright
 
-From `frontend/` (uses preview/demo mode, no Docker):
+From `frontend/` (demo only with `?demo=true`, `VITE_DEMO=true`, or the "Provo si…" buttons — never on a network error):
 
 ```bash
 npx playwright install chromium

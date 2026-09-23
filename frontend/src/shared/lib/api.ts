@@ -22,15 +22,20 @@ export async function api<T>(path: string, options: RequestInit = {}, retried = 
     return handleDemo<T>(path, options);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...options.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    throw new Error('Backend-i nuk është i arritshëm. Për demo përdor ?demo=true ose butonin Provo.');
+  }
 
   const data = (await response.json().catch(() => null)) as T | { message?: string };
 

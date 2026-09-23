@@ -13,8 +13,28 @@ import {
 export const DEMO_FLAG = 'bookflow-demo';
 export const DEMO_SLUG = 'studio-aureel';
 
+function envWantsDemo() {
+  const flag = import.meta.env.VITE_DEMO;
+  return flag === 'true' || flag === '1';
+}
+
+function queryWantsDemo() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  const value = new URLSearchParams(window.location.search).get('demo');
+  return value === 'true' || value === '1';
+}
+
+/** Demo aktivizohet vetëm me ?demo=true, VITE_DEMO, ose butonat "Provo si…". */
+export function syncExplicitDemo() {
+  if (envWantsDemo() || queryWantsDemo()) {
+    enableDemo();
+  }
+}
+
 export function isDemo() {
-  return localStorage.getItem(DEMO_FLAG) === '1';
+  return envWantsDemo() || localStorage.getItem(DEMO_FLAG) === '1';
 }
 
 export function enableDemo() {
@@ -23,7 +43,7 @@ export function enableDemo() {
 
 export function disableDemo() {
   localStorage.removeItem(DEMO_FLAG);
-  localStorage.removeItem(STORE_KEY);
+  sessionStorage.removeItem(STORE_KEY);
 }
 
 const STORE_KEY = 'bookflow-aureel-v1';
@@ -273,7 +293,6 @@ function json<T>(data: T) {
 }
 
 export function handleDemo<T>(path: string, options: RequestInit = {}): T {
-  enableDemo();
   const store = loadStore();
   const method = (options.method ?? 'GET').toUpperCase();
   const body = options.body ? (JSON.parse(String(options.body)) as Record<string, unknown>) : {};

@@ -65,14 +65,29 @@ model User {
   business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   refreshTokens RefreshToken[]
   staffProfile  Staff?
-  clientBookings Booking[]      @relation("ClientBookings")
-  notifications  Notification[]
+  clientBookings       Booking[]            @relation("ClientBookings")
+  notifications        Notification[]
+  passwordResetTokens  PasswordResetToken[]
 
   @@index([businessId])
   @@map("users")
 }
 
 // Refresh token opaque, i ruajtur si hash — mund ta revokojmë.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  userId    String    @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
 model RefreshToken {
   id        String    @id @default(uuid())
   tokenHash String    @unique @map("token_hash")

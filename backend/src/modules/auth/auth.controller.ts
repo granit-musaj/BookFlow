@@ -7,10 +7,12 @@ import { Public } from '../../common/decorators/public.decorator';
 import { AuthUser } from '../../common/types/auth-user.type';
 import { REFRESH_COOKIE, refreshCookieOptions } from './auth-cookie';
 import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -64,6 +66,22 @@ export class AuthController {
     const result = await this.auth.logout(user.id, raw);
     res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
     return result;
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.auth.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('reset-password')
+  @HttpCode(200)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto.token, dto.password);
   }
 
   @ApiBearerAuth()

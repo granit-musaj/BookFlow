@@ -38,6 +38,7 @@ type Store = {
   clients: ClientUser[];
   bookings: Booking[];
   notifications: Array<AppNotification & { userId: string }>;
+  passwordResets: Array<{ token: string; userId: string; expiresAt: number }>;
 };
 
 function atHour(hours: number, minutes = 0, dayOffset = 0) {
@@ -217,6 +218,7 @@ function seed(): Store {
         createdAt: new Date().toISOString(),
       },
     ],
+    passwordResets: [],
   };
 }
 
@@ -224,7 +226,8 @@ function loadStore(): Store {
   const raw = sessionStorage.getItem(STORE_KEY);
   if (raw) {
     try {
-      return JSON.parse(raw) as Store;
+      const parsed = JSON.parse(raw) as Store;
+      return { ...parsed, passwordResets: parsed.passwordResets ?? [] };
     } catch {
       // fall through
     }
@@ -278,10 +281,42 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
 
   if (path === '/auth/login' && method === 'POST') {
     const found = store.users.find((row) => row.email === String(body.email).toLowerCase());
-    if (!found) {
+    if (!found || found.password !== String(body.password)) {
       throw new Error('Email ose fjalëkalim i pasaktë');
     }
     return json(toAuth(found) as T);
+  }
+
+  if (path === '/auth/forgot-password' && method === 'POST') {
+    const found = store.users.find((row) => row.email === String(body.email).toLowerCase());
+    if (found) {
+      const token = `demo-reset-${found.id}-${Date.now()}`;
+      store.passwordResets.push({
+        token,
+        userId: found.id,
+        expiresAt: Date.now() + 60 * 60 * 1000,
+      });
+      saveStore(store);
+      console.info(`[demo] reset-password link: /reset-password?token=${token}`);
+    }
+    return json({ ok: true } as T);
+  }
+
+  if (path === '/auth/reset-password' && method === 'POST') {
+    const row = store.passwordResets.find(
+      (item) => item.token === String(body.token) && item.expiresAt > Date.now(),
+    );
+    if (!row) {
+      throw new Error('Token i pavlefshëm ose i skaduar');
+    }
+    const account = store.users.find((item) => item.id === row.userId);
+    if (!account) {
+      throw new Error('Token i pavlefshëm ose i skaduar');
+    }
+    account.password = String(body.password);
+    store.passwordResets = store.passwordResets.filter((item) => item.token !== row.token);
+    saveStore(store);
+    return json({ ok: true } as T);
   }
 
   if (path === '/auth/register' && method === 'POST') {

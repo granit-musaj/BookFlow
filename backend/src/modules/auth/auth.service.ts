@@ -1,8 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -10,6 +13,7 @@ import { BusinessesRepository } from '../businesses/businesses.repository';
 import { UsersRepository } from '../users/users.repository';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { PasswordResetRepository } from './password-reset.repository';
 import { RefreshTokensRepository } from './refresh-tokens.repository';
 import { slugify, slugWithSuffix } from './slug';
 import { TokensService } from './tokens.service';
@@ -18,12 +22,16 @@ const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly users: UsersRepository,
     private readonly businesses: BusinessesRepository,
     private readonly refreshTokens: RefreshTokensRepository,
+    private readonly passwordResets: PasswordResetRepository,
     private readonly tokens: TokensService,
+    private readonly config: ConfigService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -87,6 +95,37 @@ export class AuthService {
 
     await this.refreshTokens.revokeAllForUser(userId);
     return { success: true };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.users.findByEmail(email);
+    if (user?.isActive) {
+      const raw = this.tokens.generateRefreshToken();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await this.passwordResets.create({
+        userId: user.id,
+        tokenHash: raw.hash,
+        expiresAt,
+      });
+      const frontend = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+      this.logger.log(
+        `[password-reset] to=${user.email} url=${frontend}/reset-password?token=${raw.raw}`,
+      );
+    }
+    return { ok: true };
+  }
+
+  async resetPassword(token: string, password: string) {
+    const stored = await this.passwordResets.findValidByHash(this.tokens.hashRefreshToken(token));
+    if (!stored || !stored.user.isActive) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await this.users.updatePasswordHash(stored.userId, passwordHash);
+    await this.passwordResets.markUsed(stored.id);
+    await this.refreshTokens.revokeAllForUser(stored.userId);
+    return { ok: true };
   }
 
   async me(userId: string) {

@@ -46,7 +46,9 @@ describe.skipIf(!canRun)('auth and bookings (e2e)', () => {
     expect(response.body.user.role).toBe('OWNER');
     expect(response.body.tokens.accessToken).toBeTruthy();
     expect(response.body.tokens.refreshToken).toBeUndefined();
-    expect(response.headers['set-cookie']?.join(' ')).toMatch(/refreshToken=/);
+    const cookies = response.headers['set-cookie'];
+    const cookieHeader = Array.isArray(cookies) ? cookies.join(' ') : String(cookies ?? '');
+    expect(cookieHeader).toMatch(/refreshToken=/);
     accessToken = response.body.tokens.accessToken;
   });
 

@@ -43,6 +43,7 @@ Clients open `/b/:slug` (also linked from the owner dashboard).
 | Method | Path | Access |
 | --- | --- | --- |
 | GET | `/api/businesses/me` | Authenticated |
+| GET | `/api/businesses/me/stats` | Owner — today/week bookings, estimated revenue, peak hour |
 | GET/POST/PATCH | `/api/services` | Read: all roles · Write: Owner |
 | GET/POST/PATCH | `/api/staff` | Read: all roles · Create/update: Owner |
 | GET/POST/DELETE | `/api/staff/:id/availability` | Staff can edit their own hours |
@@ -60,8 +61,10 @@ Clients open `/b/:slug` (also linked from the owner dashboard).
 | Method | Path | Access |
 | --- | --- | --- |
 | POST | `/api/auth/register` | Public — Owner creates a tenant, Client joins by `businessSlug` |
-| POST | `/api/auth/login` | Public |
-| POST | `/api/auth/refresh` | Public — body: `{ "refreshToken" }` |
+| POST | `/api/auth/login` | Public — refresh token set as httpOnly cookie |
+| POST | `/api/auth/refresh` | Public — cookie or body `{ "refreshToken" }` |
+| POST | `/api/auth/forgot-password` | Public — always `{ ok: true }`; reset URL is logged |
+| POST | `/api/auth/reset-password` | Public — body `{ token, password }` |
 | POST | `/api/auth/logout` | Bearer access token |
 | GET | `/api/auth/me` | Bearer access token |
 

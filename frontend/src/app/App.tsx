@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 import { BookingsPage } from '../features/bookings/BookingsPage';
 import { ClientsPage } from '../features/clients/ClientsPage';
 import { DashboardPage } from '../features/home/DashboardPage';
@@ -19,6 +21,8 @@ export function App() {
       <Route path="/b/:slug" element={<PublicBookingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<DashboardPage />} />

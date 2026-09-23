@@ -49,6 +49,9 @@ export function LoginPage() {
           <button className="btn btn-primary" type="submit">
             Hyr
           </button>
+          <Link to="/forgot-password" className="muted text-sm">
+            Ke harruar fjalëkalimin?
+          </Link>
           <p className="muted text-xs">Provë: ana@studio.com, mira@studio.com ose elira@email.com — password123</p>
         </form>
         {message && <p className="mt-4 text-sm text-red-700">{message}</p>}

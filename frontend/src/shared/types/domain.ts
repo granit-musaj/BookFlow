@@ -5,6 +5,13 @@ export type Business = {
   timezone: string;
 };
 
+export type BusinessStats = {
+  bookingsToday: number;
+  bookingsThisWeek: number;
+  estimatedRevenueCents: number;
+  mostRequestedHour: string | null;
+};
+
 export type Service = {
   id: string;
   name: string;

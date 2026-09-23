@@ -14,6 +14,20 @@ export class BusinessesRepository {
     return this.prisma.business.findUnique({ where: { slug } });
   }
 
+  listActiveBookingsBetween(businessId: string, from: Date, to: Date) {
+    return this.prisma.booking.findMany({
+      where: {
+        businessId,
+        status: { not: 'CANCELLED' },
+        startAt: { gte: from, lt: to },
+      },
+      select: {
+        startAt: true,
+        service: { select: { priceCents: true } },
+      },
+    });
+  }
+
   createInTransaction(
     tx: Prisma.TransactionClient,
     data: { name: string; slug: string },

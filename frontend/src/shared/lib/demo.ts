@@ -1,5 +1,14 @@
 import { AuthResponse, PublicUser, Role } from '../types/auth';
-import { AppNotification, Booking, Business, ClientUser, Service, StaffMember } from '../types/domain';
+import {
+  AppNotification,
+  Booking,
+  Business,
+  BusinessStats,
+  ClientUser,
+  isSameDay,
+  Service,
+  StaffMember,
+} from '../types/domain';
 
 export const DEMO_FLAG = 'bookflow-demo';
 export const DEMO_SLUG = 'studio-aureel';
@@ -302,6 +311,36 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
 
   if (path === '/businesses/me') {
     return json(store.business as T);
+  }
+
+  if (path === '/businesses/me/stats') {
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(startOfToday);
+    const weekday = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - (weekday === 0 ? 6 : weekday - 1));
+    const startOfNextWeek = new Date(startOfWeek);
+    startOfNextWeek.setDate(startOfNextWeek.getDate() + 7);
+
+    const active = store.bookings.filter((row) => row.status !== 'CANCELLED');
+    const today = active.filter((row) => isSameDay(row.startAt));
+    const week = active.filter((row) => {
+      const start = new Date(row.startAt);
+      return start >= startOfWeek && start < startOfNextWeek;
+    });
+    const hourCounts = week.reduce<Record<string, number>>((acc, row) => {
+      const hour = `${String(new Date(row.startAt).getHours()).padStart(2, '0')}:00`;
+      acc[hour] = (acc[hour] ?? 0) + 1;
+      return acc;
+    }, {});
+    const stats: BusinessStats = {
+      bookingsToday: today.length,
+      bookingsThisWeek: week.length,
+      estimatedRevenueCents: week.reduce((sum, row) => sum + row.service.priceCents, 0),
+      mostRequestedHour: Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+    };
+    return json(stats as T);
   }
 
   if (path === '/services' && method === 'GET') {

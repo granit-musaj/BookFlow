@@ -16,7 +16,7 @@ docker compose up --build
 ```
 
 - API: http://localhost:3000/api
-- Health: http://localhost:3000/api/health
+- Health: `curl http://localhost:3000/api/health` → `{ "status": "ok" }`
 - Swagger: http://localhost:3000/api/docs
 - Frontend: http://localhost:5173
 
@@ -27,14 +27,19 @@ docker compose up postgres redis -d
 cd backend
 # DATABASE_URL host must be localhost
 npx prisma migrate deploy
+npm run db:seed
 npm run start:dev
 ```
+
+Seed creates a demo Owner, a business with slug, two services, one staff member with Mon–Fri availability, and a CLIENT user. Passwords come only from env (`SEED_OWNER_PASSWORD`, `SEED_STAFF_PASSWORD`, `SEED_CLIENT_PASSWORD`) — they are never hardcoded. Optional: `SEED_OWNER_EMAIL`, `SEED_STAFF_EMAIL`, `SEED_CLIENT_EMAIL`, `SEED_BUSINESS_SLUG`, `SEED_BUSINESS_NAME`.
 
 ## Before going live
 
 - [ ] Replace the CI badge `<user>/<repo>` above with the real GitHub repository.
-- [ ] Serve the API over **HTTPS** in production. `refreshCookieOptions()` sets `secure: true` when `NODE_ENV=production`. On HTTP the browser ignores the `httpOnly` refresh cookie, so login looks successful and then silently dies on the next `/auth/refresh`.
-- [ ] Point `FRONTEND_URL` at the real SPA origin (CORS + password-reset links).
+- [ ] Serve the API over **HTTPS** in production. The refresh cookie defaults to `SameSite=Lax` and `Secure` when `NODE_ENV=production` (override with `COOKIE_SAMESITE`, `COOKIE_SECURE`, `COOKIE_DOMAIN`, `COOKIE_PATH`). On HTTP the browser ignores a Secure `httpOnly` refresh cookie, so login looks successful and then silently dies on the next `/auth/refresh`.
+- [ ] **Recommended deploy:** same-site hosts such as `app.example.com` (SPA) and `api.example.com` (API). The SPA calls `/auth/refresh` with `credentials: 'include'`. CORS uses `FRONTEND_URL` as the exact origin with credentials enabled. Cross-site (e.g. `*.vercel.app` + a different API host) needs `COOKIE_SAMESITE=none` and `COOKIE_SECURE=true`, which is more fragile — prefer the same-site setup. Locally, Vite proxies `/api` → `http://localhost:3000` (`VITE_API_URL=/api`) so the Lax refresh cookie is first-party and survives a hard reload.
+- [ ] Point `FRONTEND_URL` at the real SPA origin (CORS + password-reset links). No trailing slash.
+- [ ] Set `VITE_SITE_URL` to the public frontend origin (no trailing slash) so Open Graph tags use an absolute image URL. In Vercel: Project → Settings → Environment Variables → `VITE_SITE_URL` = `https://your-domain.com`, then redeploy.
 - [ ] Rotate `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`.
 - [ ] Backend CI already runs `npm run test:e2e` (`backend/package.json` → `vitest.e2e.config.ts`).
 
@@ -57,6 +62,7 @@ Clients open `/b/:slug` (also linked from the owner dashboard).
 | GET | `/api/businesses/me/stats` | Owner — today/week bookings, estimated revenue, peak hour |
 | GET/POST/PATCH | `/api/services` | Read: all roles · Write: Owner |
 | GET/POST/PATCH | `/api/staff` | Read: all roles · Create/update: Owner |
+| GET | `/api/staff/me` | Staff — own profile |
 | GET/POST/DELETE | `/api/staff/:id/availability` | Staff can edit their own hours |
 | GET/POST | `/api/users/clients` | Owner, Staff |
 | GET/POST | `/api/bookings` | All roles (scoped) |
@@ -119,6 +125,14 @@ From `frontend/` (demo only with `?demo=true`, `VITE_DEMO=true`, or the "Provo s
 ```bash
 npx playwright install chromium
 npm run test:e2e
+```
+
+Non-demo smoke against a real API (skipped automatically when `VITE_API_URL` / `SMOKE_API_URL` is unset):
+
+```bash
+# Requires a running API, `npm run db:seed`, and:
+# VITE_API_URL, SEED_BUSINESS_SLUG, SEED_OWNER_EMAIL, SEED_OWNER_PASSWORD
+npm run test:smoke
 ```
 
 

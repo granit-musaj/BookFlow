@@ -14,6 +14,7 @@ export function ThemeToggle() {
     <button
       className="theme-toggle"
       type="button"
+      aria-label={LABEL[theme]}
       onClick={() => setTheme(cycleTheme(theme))}
     >
       {LABEL[theme]}

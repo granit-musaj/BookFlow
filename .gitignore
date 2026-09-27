@@ -12,6 +12,7 @@ build/
 .env
 .env.local
 .env.*.local
+.seed-credentials.tmp
 
 # Prisma
 backend/src/generated/
@@ -36,6 +37,8 @@ Thumbs.db
 # Docker
 postgres_data/
 redis_data/
+.local-infra/
+redis-binaries/
 
 # Local deploy metadata
 frontend/.vercel/

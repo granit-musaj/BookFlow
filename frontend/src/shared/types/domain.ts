@@ -116,9 +116,24 @@ export function formatDayMonth(date: Date) {
   return `${date.getDate()} ${MONTH_LONG[date.getMonth()]}`;
 }
 
-export function formatTime(iso: string) {
-  const value = new Date(iso);
-  return `${pad2(value.getHours())}:${pad2(value.getMinutes())}`;
+export const BUSINESS_TZ = 'Europe/Tirane';
+
+export function formatTime(iso: string, timeZone = BUSINESS_TZ) {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone,
+  }).format(new Date(iso));
+}
+
+export function formatDateKey(iso: string, timeZone = BUSINESS_TZ) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso));
 }
 
 export function formatDateTime(iso: string) {

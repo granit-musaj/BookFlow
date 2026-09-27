@@ -14,6 +14,10 @@ export type AppEnv = {
   PORT: number;
   FRONTEND_URL: string;
   NODE_ENV: string;
+  COOKIE_SAMESITE: 'lax' | 'strict' | 'none';
+  COOKIE_SECURE: boolean;
+  COOKIE_DOMAIN?: string;
+  COOKIE_PATH: string;
   ANTHROPIC_API_KEY?: string;
 };
 
@@ -36,6 +40,21 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     throw new EnvError(missing);
   }
 
+  const sameSiteRaw = String(raw.COOKIE_SAMESITE ?? 'lax').toLowerCase();
+  const sameSite =
+    sameSiteRaw === 'strict' || sameSiteRaw === 'none' || sameSiteRaw === 'lax'
+      ? sameSiteRaw
+      : 'lax';
+  const nodeEnv = String(raw.NODE_ENV ?? 'development');
+  const secureRaw = raw.COOKIE_SECURE;
+  const secure =
+    secureRaw === 'true' || secureRaw === '1'
+      ? true
+      : secureRaw === 'false' || secureRaw === '0'
+        ? false
+        : nodeEnv === 'production';
+  const domain = raw.COOKIE_DOMAIN ? String(raw.COOKIE_DOMAIN).trim() : '';
+
   return {
     DATABASE_URL: String(raw.DATABASE_URL),
     REDIS_URL: String(raw.REDIS_URL ?? 'redis://localhost:6379'),
@@ -45,7 +64,11 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     JWT_REFRESH_EXPIRES_IN: String(raw.JWT_REFRESH_EXPIRES_IN ?? '7d'),
     PORT: Number(raw.PORT ?? 3000),
     FRONTEND_URL: String(raw.FRONTEND_URL ?? 'http://localhost:5173'),
-    NODE_ENV: String(raw.NODE_ENV ?? 'development'),
+    NODE_ENV: nodeEnv,
+    COOKIE_SAMESITE: sameSite,
+    COOKIE_SECURE: secure,
+    COOKIE_DOMAIN: domain || undefined,
+    COOKIE_PATH: String(raw.COOKIE_PATH ?? '/api/auth'),
     ANTHROPIC_API_KEY: raw.ANTHROPIC_API_KEY
       ? String(raw.ANTHROPIC_API_KEY)
       : undefined,

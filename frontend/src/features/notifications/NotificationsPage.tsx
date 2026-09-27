@@ -2,17 +2,21 @@ import { useEffect, useState } from 'react';
 import { api } from '../../shared/lib/api';
 import { AppNotification, formatDateTime } from '../../shared/types/domain';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { EmptyState, ErrorState, Skeleton } from '../../shared/ui/Skeleton';
 
 export function NotificationsPage() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
 
   async function load() {
     setItems(await api<AppNotification[]>('/notifications'));
   }
 
   useEffect(() => {
-    load().catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'));
+    load()
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'))
+      .finally(() => setReady(true));
   }, []);
 
   async function markRead(id: string) {
@@ -49,7 +53,8 @@ export function NotificationsPage() {
           )
         }
       />
-      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
+      {!ready && <Skeleton lines={3} />}
+      {error && <ErrorState message={error} />}
       <ul className="card divide-y divide-[var(--line)]">
         {items.map((item) => (
           <li key={item.id} className={`px-6 py-4 ${item.readAt ? 'opacity-60' : ''}`}>
@@ -67,7 +72,11 @@ export function NotificationsPage() {
             </div>
           </li>
         ))}
-        {items.length === 0 && <li className="muted px-6 py-6 text-sm">Nuk ka njoftime ende.</li>}
+        {ready && items.length === 0 && (
+          <li>
+            <EmptyState title="Nuk ka njoftime" body="Kërkesat e reja të rezervimit shfaqen këtu." />
+          </li>
+        )}
       </ul>
     </section>
   );

@@ -3,6 +3,7 @@ import { api } from '../../shared/lib/api';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { ClientUser, shortName } from '../../shared/types/domain';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { EmptyState, ErrorState, Skeleton } from '../../shared/ui/Skeleton';
 
 export function ClientsPage() {
   const { user } = useAuth();
@@ -13,8 +14,9 @@ export function ClientsPage() {
     lastName: '',
     email: '',
     password: '',
-    phone: '',
   });
+  const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     setClients(await api<ClientUser[]>('/users/clients'));
@@ -24,7 +26,9 @@ export function ClientsPage() {
     if (user?.role === 'CLIENT') {
       return;
     }
-    load().catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'));
+    load()
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'))
+      .finally(() => setReady(true));
   }, [user?.role]);
 
   if (user?.role === 'CLIENT') {
@@ -34,28 +38,43 @@ export function ClientsPage() {
   async function onCreate(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setSaving(true);
     try {
       await api('/users/clients', { method: 'POST', body: JSON.stringify(form) });
-      setForm({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+      setForm({ firstName: '', lastName: '', email: '', password: '' });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Klienti nuk u shtua');
+    } finally {
+      setSaving(false);
     }
   }
 
   return (
     <section>
       <PageHeader title="Klientët" subtitle="Lista e njerëzve që rezervojnë te studioja." />
-      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
+      {!ready && <Skeleton lines={3} />}
+      {error && <ErrorState message={error} />}
 
       <form onSubmit={onCreate} className="card grid gap-3 p-6 sm:grid-cols-2">
-        <input className="input" placeholder="Emri" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
-        <input className="input" placeholder="Mbiemri" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
-        <input className="input" type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-        <input className="input" placeholder="Telefoni" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <input className="input sm:col-span-2" type="password" minLength={8} placeholder="Fjalëkalim i përkohshëm" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-        <button className="btn btn-primary sm:col-span-2" type="submit">
-          Shto klient
+        <label className="field">
+          <span className="field-label">Emri</span>
+          <input className="input" autoComplete="given-name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
+        </label>
+        <label className="field">
+          <span className="field-label">Mbiemri</span>
+          <input className="input" autoComplete="family-name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
+        </label>
+        <label className="field">
+          <span className="field-label">Email</span>
+          <input className="input" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        </label>
+        <label className="field sm:col-span-2">
+          <span className="field-label">Fjalëkalim i përkohshëm</span>
+          <input className="input" type="password" minLength={8} autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+        </label>
+        <button className="btn btn-primary sm:col-span-2" type="submit" disabled={saving} aria-busy={saving}>
+          {saving ? 'Duke u dërguar…' : 'Shto klient'}
         </button>
       </form>
 
@@ -66,10 +85,13 @@ export function ClientsPage() {
               <p className="font-medium">{shortName(client.firstName, client.lastName)}</p>
               <p className="muted text-sm">{client.email}</p>
             </div>
-            <p className="muted">{client.phone ?? '—'}</p>
           </li>
         ))}
-        {clients.length === 0 && <li className="muted px-6 py-6 text-sm">Nuk ka klientë ende.</li>}
+        {ready && clients.length === 0 && (
+          <li>
+            <EmptyState title="Nuk ka klientë" body="Shto klientin e parë ose prit rezervimet nga faqja publike." />
+          </li>
+        )}
       </ul>
     </section>
   );

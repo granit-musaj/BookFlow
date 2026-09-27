@@ -35,16 +35,23 @@ export function NotificationBell() {
   return (
     <NavLink
       to="/app/notifications"
+      aria-label={count > 0 ? `Njoftime, ${count} të palexuara` : 'Njoftime'}
       className={({ isActive }) => `side-link ${isActive ? 'side-link-on' : ''}`}
+      data-tooltip="Njoftime"
+      title="Njoftime"
     >
-      <span className="flex items-center justify-between">
-        Njoftime
-        {count > 0 && (
-          <span className="sidebar-count">
-            {count > 9 ? '9+' : count}
-          </span>
-        )}
-      </span>
+      <svg className="side-icon" viewBox="0 0 24 24" aria-hidden>
+        <path
+          d="M6 17h12l-1.2-2.1V11a4.8 4.8 0 0 0-9.6 0v3.9L6 17zm4.2 2.2a1.8 1.8 0 0 0 3.6 0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span className="side-text">Njoftime</span>
+      {count > 0 && <span className="sidebar-count">{count > 9 ? '9+' : count}</span>}
     </NavLink>
   );
 }

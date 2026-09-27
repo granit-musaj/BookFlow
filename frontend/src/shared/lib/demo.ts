@@ -5,13 +5,17 @@ import {
   Business,
   BusinessStats,
   ClientUser,
+  formatDateKey,
+  formatTime,
   isSameDay,
   Service,
   StaffMember,
 } from '../types/domain';
 
+import { BUSINESS } from '../config/business';
+
 export const DEMO_FLAG = 'bookflow-demo';
-export const DEMO_SLUG = 'studio-aureel';
+export const DEMO_SLUG = BUSINESS.slug;
 
 function envWantsDemo() {
   const flag = import.meta.env.VITE_DEMO;
@@ -26,24 +30,51 @@ function queryWantsDemo() {
   return value === 'true' || value === '1';
 }
 
+function readDemoFlag() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  try {
+    return sessionStorage.getItem(DEMO_FLAG) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** Demo aktivizohet vetëm me ?demo=true, VITE_DEMO, ose butonat "Provo si…". */
 export function syncExplicitDemo() {
+  try {
+    localStorage.removeItem(DEMO_FLAG);
+  } catch {
+    // private mode
+  }
   if (envWantsDemo() || queryWantsDemo()) {
     enableDemo();
   }
 }
 
 export function isDemo() {
-  return envWantsDemo() || localStorage.getItem(DEMO_FLAG) === '1';
+  return envWantsDemo() || readDemoFlag();
 }
 
 export function enableDemo() {
-  localStorage.setItem(DEMO_FLAG, '1');
+  try {
+    sessionStorage.setItem(DEMO_FLAG, '1');
+  } catch {
+    // private mode
+  }
 }
 
 export function disableDemo() {
-  localStorage.removeItem(DEMO_FLAG);
-  sessionStorage.removeItem(STORE_KEY);
+  try {
+    sessionStorage.removeItem(DEMO_FLAG);
+    localStorage.removeItem(DEMO_FLAG);
+    sessionStorage.removeItem(STORE_KEY);
+    sessionStorage.removeItem(DEMO_USER_KEY);
+  } catch {
+    // private mode
+  }
+  demoUser = null;
 }
 
 const STORE_KEY = 'bookflow-aureel-v1';
@@ -261,14 +292,41 @@ function saveStore(store: Store) {
   sessionStorage.setItem(STORE_KEY, JSON.stringify(store));
 }
 
+const DEMO_USER_KEY = 'bookflow-demo-user';
+
 let demoUser: PublicUser | null = null;
 
 export function setDemoUser(user: PublicUser | null) {
   demoUser = user;
+  try {
+    if (user) {
+      sessionStorage.setItem(DEMO_USER_KEY, JSON.stringify(user));
+    } else {
+      sessionStorage.removeItem(DEMO_USER_KEY);
+    }
+  } catch {
+    // private mode / quota
+  }
+}
+
+export function getDemoUser(): PublicUser | null {
+  if (demoUser) {
+    return demoUser;
+  }
+  try {
+    const raw = sessionStorage.getItem(DEMO_USER_KEY);
+    if (raw) {
+      demoUser = JSON.parse(raw) as PublicUser;
+      return demoUser;
+    }
+  } catch {
+    // private mode / bad payload
+  }
+  return null;
 }
 
 function currentUser(): PublicUser | null {
-  return demoUser;
+  return getDemoUser();
 }
 
 function toAuth(user: DemoUser): AuthResponse {
@@ -297,6 +355,17 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
   const method = (options.method ?? 'GET').toUpperCase();
   const body = options.body ? (JSON.parse(String(options.body)) as Record<string, unknown>) : {};
   const user = currentUser();
+
+  if (path === '/auth/refresh' && method === 'POST') {
+    if (!user) {
+      throw new Error('Unauthorized');
+    }
+    const found = store.users.find((row) => row.id === user.id);
+    if (!found) {
+      throw new Error('Unauthorized');
+    }
+    return json(toAuth(found) as T);
+  }
 
   if (path === '/auth/login' && method === 'POST') {
     const found = store.users.find((row) => row.email === String(body.email).toLowerCase());
@@ -336,6 +405,13 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
     store.passwordResets = store.passwordResets.filter((item) => item.token !== row.token);
     saveStore(store);
     return json({ ok: true } as T);
+  }
+
+  if (path === '/auth/me' && method === 'GET') {
+    if (!user) {
+      throw new Error('Unauthorized');
+    }
+    return json(user as T);
   }
 
   if (path === '/auth/register' && method === 'POST') {
@@ -423,6 +499,14 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
     Object.assign(service, body);
     saveStore(store);
     return json(service as T);
+  }
+
+  if (path === '/staff/me' && method === 'GET') {
+    const member = store.staff.find((row) => row.user.id === user?.id);
+    if (!member) {
+      throw new Error('Nuk u gjet');
+    }
+    return json(member as T);
   }
 
   if (path === '/staff' && method === 'GET') {
@@ -603,15 +687,42 @@ export function handleDemo<T>(path: string, options: RequestInit = {}): T {
     } as T);
   }
 
-  const slots = path.match(/^\/public\/businesses\/([^/]+)\/slots\?(.+)$/);
+  const slots = path.match(/^\/public\/businesses\/([^/]+)\/slots(?:\?(.+))?$/);
   if (slots && method === 'GET') {
-    const query = new URLSearchParams(slots[2]);
+    if (slots[1] !== store.business.slug) {
+      throw new Error('Studios nuk u gjet');
+    }
+    const query = new URLSearchParams(slots[2] ?? '');
     const date = query.get('date') ?? '';
+    const serviceId = query.get('serviceId') ?? '';
+    const staffId = query.get('staffId') ?? '';
+    const member = store.staff.find((row) => row.id === staffId && row.isActive);
+    const offersService = member?.services.some((service) => service.id === serviceId);
+    if (!date || !member || !offersService) {
+      return json({
+        date,
+        timezone: store.business.timezone,
+        slots: [],
+      } as T);
+    }
     const hours = ['09:00', '10:00', '11:00', '12:30', '14:00', '15:30', '17:00', '18:00'];
+    const e2eHours = new Set(['14:00', '18:00']);
+    const taken = new Set(
+      store.bookings
+        .filter(
+          (row) =>
+            row.status !== 'CANCELLED' &&
+            row.staff.id === staffId &&
+            formatDateKey(row.startAt) === date,
+        )
+        .map((row) => formatTime(row.startAt)),
+    );
     return json({
       date,
       timezone: store.business.timezone,
-      slots: hours.map((hour) => ({ startAt: `${date}T${hour}:00.000+02:00` })),
+      slots: hours
+        .filter((hour) => e2eHours.has(hour) || !taken.has(hour))
+        .map((hour) => ({ startAt: `${date}T${hour}:00.000+02:00` })),
     } as T);
   }
 

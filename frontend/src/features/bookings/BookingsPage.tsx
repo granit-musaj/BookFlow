@@ -16,9 +16,11 @@ import {
   STATUS_LABEL,
 } from '../../shared/types/domain';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { Modal } from '../../shared/ui/Modal';
+import { MonthCalendar } from '../../shared/ui/MonthCalendar';
+import { EmptyState, ErrorState, Skeleton } from '../../shared/ui/Skeleton';
 import { SlotLedger } from '../../shared/ui/SlotLedger';
-
-const SLOT_TIMES = ['09:00', '10:00', '11:00', '12:30', '14:00', '15:30', '17:00', '18:00'];
+import { useToast } from '../../shared/ui/Toast';
 
 function todayKey() {
   const date = new Date();
@@ -42,7 +44,16 @@ export function BookingsPage() {
   const [staffId, setStaffId] = useState('');
   const [clientId, setClientId] = useState('');
   const [date, setDate] = useState(todayKey);
-  const [time, setTime] = useState('');
+  const [startAt, setStartAt] = useState('');
+  const [slots, setSlots] = useState<string[]>([]);
+  const [slotsReady, setSlotsReady] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
+  const [ready, setReady] = useState(false);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<'ALL' | Booking['status']>('ALL');
+  const [pendingCancel, setPendingCancel] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const toast = useToast();
 
   async function load() {
     const [biz, bookingRows, staffRows, serviceRows] = await Promise.all([
@@ -61,7 +72,9 @@ export function BookingsPage() {
   }
 
   useEffect(() => {
-    load().catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'));
+    load()
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'))
+      .finally(() => setReady(true));
   }, []);
 
   useEffect(() => {
@@ -95,19 +108,59 @@ export function BookingsPage() {
     [bookings],
   );
 
-  const takenSlots = useMemo(() => {
-    const day = new Date(`${date}T12:00:00`);
-    return new Set(
-      bookings
-        .filter(
-          (row) =>
-            row.status !== 'CANCELLED' &&
-            isSameDay(row.startAt, day) &&
-            (!staffId || row.staff.id === staffId),
-        )
-        .map((row) => formatTime(row.startAt)),
-    );
-  }, [bookings, date, staffId]);
+  const filteredBookings = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return bookings.filter((row) => {
+      if (status !== 'ALL' && row.status !== status) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+      return `${row.service.name} ${row.staff.displayName} ${row.client.firstName} ${row.client.lastName}`
+        .toLowerCase()
+        .includes(needle);
+    });
+  }, [bookings, query, status]);
+
+  useEffect(() => {
+    if (!business?.slug || !serviceId || !staffId || !date) {
+      setSlots([]);
+      setStartAt('');
+      setSlotsReady(true);
+      setSlotsError('');
+      return;
+    }
+
+    let cancelled = false;
+    setSlotsReady(false);
+    setSlotsError('');
+    const params = new URLSearchParams({ serviceId, staffId, date });
+    api<{ slots: Array<{ startAt: string }> }>(`/public/businesses/${business.slug}/slots?${params}`)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        setSlots(result.slots.map((slot) => slot.startAt));
+        setStartAt('');
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setSlots([]);
+          setStartAt('');
+          setSlotsError(err instanceof Error ? err.message : 'Oraret nuk u ngarkuan');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setSlotsReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [business?.slug, serviceId, staffId, date]);
 
   const stats = useMemo(() => {
     const hours = todayBookings.map((row) => formatTime(row.startAt));
@@ -122,24 +175,28 @@ export function BookingsPage() {
 
   async function createBooking() {
     setError('');
-    if (!serviceId || !staffId || !time) {
+    if (!serviceId || !staffId || !startAt) {
       setError('Zgjidh shërbimin dhe orarin.');
       return;
     }
+    setCreating(true);
     try {
       await api<Booking>('/bookings', {
         method: 'POST',
         body: JSON.stringify({
           staffId,
           serviceId,
-          startAt: new Date(`${date}T${time}:00`).toISOString(),
+          startAt,
           ...(user?.role !== 'CLIENT' ? { clientId } : {}),
         }),
       });
-      setTime('');
+      setStartAt('');
+      toast('Rezervimi u krijua.');
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Rezervimi nuk u krijua');
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -180,7 +237,24 @@ export function BookingsPage() {
         }
       />
 
-      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
+      {!ready && <Skeleton lines={4} />}
+      {error && <ErrorState message={error} />}
+
+      <div className="mb-5 grid gap-3 md:grid-cols-[1fr_180px]">
+        <label className="field">
+          <span className="field-label">Kërko</span>
+          <input className="input" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Klient, shërbim, staf" />
+        </label>
+        <label className="field">
+          <span className="field-label">Statusi</span>
+          <select className="input" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+            <option value="ALL">Të gjitha</option>
+            <option value="PENDING">Në pritje</option>
+            <option value="CONFIRMED">Konfirmuar</option>
+            <option value="CANCELLED">Anuluar</option>
+          </select>
+        </label>
+      </div>
 
       <div className="stat-strip mb-6 grid gap-4 md:grid-cols-3">
         {[
@@ -195,64 +269,62 @@ export function BookingsPage() {
         ))}
       </div>
 
-      <div className="mt-6 grid gap-5 xl:grid-cols-[1.4fr_0.9fr]">
-        <div className="card p-6">
-          <p className="text-lg font-semibold">1. Zgjidh shërbimin</p>
-          <p className="muted mt-1 text-sm">Shërbimet e ofruara nga {business?.name ?? 'studio'}</p>
-          <ul className="mt-5 divide-y divide-[var(--line)]">
-            {services.map((service) => (
-              <li key={service.id}>
-                <button
-                  type="button"
-                  className={`flex w-full items-center justify-between py-4 text-left ${
-                    serviceId === service.id ? 'opacity-100' : 'opacity-80'
-                  }`}
-                  onClick={() => setServiceId(service.id)}
-                >
-                  <span>
-                    <span className="flex items-center gap-3 font-medium">
-                      <span
-                        className={`h-3.5 w-3.5 rounded-sm border ${
-                          serviceId === service.id ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)]'
-                        }`}
-                      />
-                      {service.name}
-                    </span>
-                    <span className="muted ml-7 mt-1 block text-sm">{service.durationMinutes} minuta</span>
-                  </span>
-                  <span className="text-lg">{formatMoney(service.priceCents)}</span>
+      <div className="card mt-6 p-6">
+        <p className="text-lg font-semibold">Rezervimet e sotme</p>
+        <p className="muted mt-1 text-sm">Përditësohet automatikisht kur shtohet një rezervim i ri</p>
+        <ul className="mt-5 space-y-4">
+          {todayBookings.map((booking) => (
+            <li key={booking.id} className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-medium">{shortName(booking.client.firstName, booking.client.lastName)}</p>
+                <p className="muted text-sm">
+                  {booking.service.name} · {formatTime(booking.startAt)}
+                </p>
+              </div>
+              {user?.role !== 'CLIENT' && booking.status === 'PENDING' ? (
+                <button className="btn btn-confirm" type="button" onClick={() => confirm(booking.id)}>
+                  Konfirmo
                 </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+              ) : (
+                <span className="status-pill" data-status={booking.status}>
+                  {STATUS_LABEL[booking.status]}
+                </span>
+              )}
+            </li>
+          ))}
+          {todayBookings.length === 0 && <li className="muted text-sm">Nuk ka rezervime sot.</li>}
+        </ul>
+      </div>
 
-        <div className="card p-6">
-          <p className="text-lg font-semibold">Rezervimet e sotme</p>
-          <p className="muted mt-1 text-sm">Përditësohet automatikisht kur shtohet një rezervim i ri</p>
-          <ul className="mt-5 space-y-4">
-            {todayBookings.map((booking) => (
-              <li key={booking.id} className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium">{shortName(booking.client.firstName, booking.client.lastName)}</p>
-                  <p className="muted text-sm">
-                    {booking.service.name} · {formatTime(booking.startAt)}
-                  </p>
-                </div>
-                {user?.role !== 'CLIENT' && booking.status === 'PENDING' ? (
-                  <button className="btn btn-confirm" type="button" onClick={() => confirm(booking.id)}>
-                    Konfirmo
-                  </button>
-                ) : (
-                  <span className="status-pill" data-status={booking.status}>
-                    {STATUS_LABEL[booking.status]}
+      <div className="card mt-5 p-6">
+        <p className="text-lg font-semibold">1. Zgjidh shërbimin</p>
+        <p className="muted mt-1 text-sm">Shërbimet e ofruara nga {business?.name ?? 'studio'}</p>
+        <ul className="mt-5 divide-y divide-[var(--line)]">
+          {services.map((service) => (
+            <li key={service.id}>
+              <button
+                type="button"
+                className={`flex w-full items-center justify-between py-4 text-left ${
+                  serviceId === service.id ? 'opacity-100' : 'opacity-80'
+                }`}
+                onClick={() => setServiceId(service.id)}
+              >
+                <span>
+                  <span className="flex items-center gap-3 font-medium">
+                    <span
+                      className={`h-3.5 w-3.5 rounded-sm border ${
+                        serviceId === service.id ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)]'
+                      }`}
+                    />
+                    {service.name}
                   </span>
-                )}
-              </li>
-            ))}
-            {todayBookings.length === 0 && <li className="muted text-sm">Nuk ka rezervime sot.</li>}
-          </ul>
-        </div>
+                  <span className="muted ml-7 mt-1 block text-sm">{service.durationMinutes} minuta</span>
+                </span>
+                <span className="text-lg">{formatMoney(service.priceCents)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="card mt-5 p-6">
@@ -293,13 +365,23 @@ export function BookingsPage() {
           })}
         </div>
         <div className="mt-4">
-          <SlotLedger slots={SLOT_TIMES} selected={time} taken={takenSlots} onSelect={setTime} />
+          <MonthCalendar value={date} onChange={setDate} />
+        </div>
+        <div className="mt-4">
+          {!slotsReady && <Skeleton lines={3} />}
+          {slotsReady && slotsError && <ErrorState message={slotsError} />}
+          {slotsReady && !slotsError && slots.length === 0 && (
+            <EmptyState title="Nuk ka orare të lira" body="Nuk ka orare të lira këtë ditë." />
+          )}
+          {slotsReady && !slotsError && slots.length > 0 && (
+            <SlotLedger slots={slots} selected={startAt} onSelect={setStartAt} label={formatTime} />
+          )}
         </div>
       </div>
 
       <div className="card mt-5 p-6">
-        <p className="text-lg font-semibold">3. Konfirmo rezervimin</p>
-        <p className="muted mt-1 text-sm">Të dhënat e klientit</p>
+        <p className="text-lg font-semibold">3. Të dhënat e klientit</p>
+        <p className="muted mt-1 text-sm">Kush do të vijë në seancë</p>
         {user?.role === 'CLIENT' ? (
           <p className="mt-5 font-medium">
             {user.firstName} {user.lastName}
@@ -327,13 +409,33 @@ export function BookingsPage() {
             ))}
           </ul>
         )}
-        <button className="btn btn-confirm mt-5" type="button" onClick={createBooking} disabled={!time || !serviceId}>
-          Krijo rezervimin
+      </div>
+
+      <div className="card mt-5 p-6">
+        <p className="text-lg font-semibold">4. Konfirmo rezervimin</p>
+        <p className="muted mt-1 text-sm">Kontrollo zgjedhjen para se ta dërgosh</p>
+        <p className="mt-4 font-medium">
+          {services.find((row) => row.id === serviceId)?.name ?? 'Zgjidh shërbimin'}
+        </p>
+        <p className="muted mt-1 text-sm">
+          {startAt ? formatTime(startAt) : 'Zgjidh orën'} · {dateHeading(date)}
+        </p>
+        <button
+          className="btn btn-confirm mt-5"
+          type="button"
+          onClick={createBooking}
+          disabled={!startAt || !serviceId || creating}
+          aria-busy={creating}
+        >
+          {creating ? 'Duke u dërguar…' : 'Krijo rezervimin'}
         </button>
       </div>
 
+      {ready && filteredBookings.length === 0 && (
+        <EmptyState title="Nuk ka rezervime" body="Ndrysho filtrin ose krijo një rezervim të ri." />
+      )}
       <ul className="card mt-5 divide-y divide-[var(--line)]">
-        {bookings.map((booking) => (
+        {filteredBookings.map((booking) => (
           <li key={booking.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
               <p className="font-medium">
@@ -353,7 +455,7 @@ export function BookingsPage() {
                 </button>
               )}
               {booking.status !== 'CANCELLED' && (
-                <button className="text-danger" type="button" onClick={() => cancel(booking.id)}>
+                <button className="text-danger" type="button" onClick={() => setPendingCancel(booking.id)}>
                   Anulo
                 </button>
               )}
@@ -361,6 +463,21 @@ export function BookingsPage() {
           </li>
         ))}
       </ul>
+      <Modal
+        open={Boolean(pendingCancel)}
+        title="Anulo rezervimin"
+        danger
+        confirmLabel="Anulo rezervimin"
+        onClose={() => setPendingCancel(null)}
+        onConfirm={async () => {
+          if (pendingCancel) {
+            await cancel(pendingCancel);
+            setPendingCancel(null);
+          }
+        }}
+      >
+        Ky veprim e liron orën. Klienti do të njoftohet.
+      </Modal>
     </section>
   );
 }

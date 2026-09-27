@@ -3,12 +3,15 @@ import { api } from '../../shared/lib/api';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { formatMoney, Service } from '../../shared/types/domain';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { EmptyState, ErrorState, Skeleton } from '../../shared/ui/Skeleton';
 
 export function ServicesPage() {
   const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ name: '', durationMinutes: 60, price: '35' });
+  const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     const rows = await api<Service[]>('/services');
@@ -16,12 +19,15 @@ export function ServicesPage() {
   }
 
   useEffect(() => {
-    load().catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'));
+    load()
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'))
+      .finally(() => setReady(true));
   }, []);
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setSaving(true);
     try {
       await api<Service>('/services', {
         method: 'POST',
@@ -35,6 +41,8 @@ export function ServicesPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Shërbimi nuk u krijua');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -54,36 +62,45 @@ export function ServicesPage() {
   return (
     <section>
       <PageHeader title="Shërbimet" subtitle="Çfarë ofron studioja dhe sa kushton." />
-      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
+      {!ready && <Skeleton lines={3} />}
+      {error && <ErrorState message={error} />}
 
       {user?.role === 'OWNER' && (
         <form onSubmit={onCreate} className="card grid gap-3 p-6 sm:grid-cols-4">
-          <input
-            className="input sm:col-span-2"
-            placeholder="Emri i shërbimit"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-            minLength={2}
-          />
-          <input
-            className="input"
-            type="number"
-            min={5}
-            max={480}
-            value={form.durationMinutes}
-            onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
-          />
-          <input
-            className="input"
-            type="number"
-            min={0}
-            step="0.01"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-          />
-          <button className="btn btn-primary sm:col-span-4" type="submit">
-            Shto shërbim
+          <label className="field sm:col-span-2">
+            <span className="field-label">Emri i shërbimit</span>
+            <input
+              className="input"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+              minLength={2}
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Minuta</span>
+            <input
+              className="input"
+              type="number"
+              min={5}
+              max={480}
+              value={form.durationMinutes}
+              onChange={(e) => setForm({ ...form, durationMinutes: Number(e.target.value) })}
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Çmimi (€)</span>
+            <input
+              className="input"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+            />
+          </label>
+          <button className="btn btn-primary sm:col-span-4" type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Duke u dërguar…' : 'Shto shërbim'}
           </button>
         </form>
       )}
@@ -105,7 +122,11 @@ export function ServicesPage() {
             )}
           </li>
         ))}
-        {services.length === 0 && <li className="muted px-6 py-6 text-sm">Nuk ka shërbime ende.</li>}
+        {ready && services.length === 0 && (
+          <li>
+            <EmptyState title="Nuk ka shërbime" body="Shto shërbimin e parë që klientët të mund të rezervojnë." />
+          </li>
+        )}
       </ul>
     </section>
   );

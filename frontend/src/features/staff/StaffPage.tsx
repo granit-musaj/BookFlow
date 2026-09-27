@@ -3,6 +3,7 @@ import { api } from '../../shared/lib/api';
 import { useAuth } from '../../shared/auth/AuthContext';
 import { Availability, Service, StaffMember, WEEKDAYS } from '../../shared/types/domain';
 import { PageHeader } from '../../shared/ui/PageHeader';
+import { EmptyState, ErrorState, Skeleton } from '../../shared/ui/Skeleton';
 
 export function StaffPage() {
   const { user } = useAuth();
@@ -19,6 +20,8 @@ export function StaffPage() {
     serviceIds: [] as string[],
   });
   const [windowForm, setWindowForm] = useState({ dayOfWeek: 1, startTime: '09:00', endTime: '17:00' });
+  const [ready, setReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     const [staffRows, serviceRows] = await Promise.all([
@@ -27,13 +30,20 @@ export function StaffPage() {
     ]);
     setStaff(staffRows);
     setServices(serviceRows);
+    if (user?.role === 'STAFF') {
+      const me = await api<StaffMember>('/staff/me');
+      setSelectedId(me.id);
+      return;
+    }
     if (!selectedId && staffRows[0]) {
       setSelectedId(staffRows[0].id);
     }
   }
 
   useEffect(() => {
-    load().catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'));
+    load()
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Nuk u ngarkua'))
+      .finally(() => setReady(true));
   }, []);
 
   const selected = staff.find((row) => row.id === selectedId);
@@ -41,6 +51,7 @@ export function StaffPage() {
   async function onCreate(event: FormEvent) {
     event.preventDefault();
     setError('');
+    setSaving(true);
     try {
       const created = await api<StaffMember>('/staff', {
         method: 'POST',
@@ -58,6 +69,8 @@ export function StaffPage() {
       setSelectedId(created.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Stafi nuk u shtua');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -100,15 +113,31 @@ export function StaffPage() {
   return (
     <section>
       <PageHeader title="Stafi" subtitle="Kush ofron shërbimet dhe kur janë të lirë." />
-      {error && <p className="text-danger mb-4 text-sm">{error}</p>}
+      {!ready && <Skeleton lines={3} />}
+      {error && <ErrorState message={error} />}
 
       {user?.role === 'OWNER' && (
         <form onSubmit={onCreate} className="card mb-5 grid gap-3 p-6 sm:grid-cols-2">
-          <input className="input" placeholder="Emri në kalendar" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required />
-          <input className="input" placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <input className="input" placeholder="Emri" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
-          <input className="input" placeholder="Mbiemri" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
-          <input className="input sm:col-span-2" placeholder="Fjalëkalim i përkohshëm" type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+          <label className="field">
+            <span className="field-label">Emri në kalendar</span>
+            <input className="input" value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} required />
+          </label>
+          <label className="field">
+            <span className="field-label">Email</span>
+            <input className="input" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          </label>
+          <label className="field">
+            <span className="field-label">Emri</span>
+            <input className="input" autoComplete="given-name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
+          </label>
+          <label className="field">
+            <span className="field-label">Mbiemri</span>
+            <input className="input" autoComplete="family-name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
+          </label>
+          <label className="field sm:col-span-2">
+            <span className="field-label">Fjalëkalim i përkohshëm</span>
+            <input className="input" type="password" minLength={8} autoComplete="new-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+          </label>
           <fieldset className="sm:col-span-2">
             <legend className="muted mb-2 text-sm">Shërbimet që ofrojnë</legend>
             <div className="flex flex-wrap gap-3">
@@ -131,8 +160,8 @@ export function StaffPage() {
               ))}
             </div>
           </fieldset>
-          <button className="btn btn-primary sm:col-span-2" type="submit">
-            Shto në staf
+          <button className="btn btn-primary sm:col-span-2" type="submit" disabled={saving} aria-busy={saving}>
+            {saving ? 'Duke u dërguar…' : 'Shto në staf'}
           </button>
         </form>
       )}
@@ -150,7 +179,11 @@ export function StaffPage() {
               </button>
             </li>
           ))}
-          {staff.length === 0 && <li className="muted px-5 py-6 text-sm">Nuk ka staf ende.</li>}
+          {ready && staff.length === 0 && (
+            <li>
+              <EmptyState title="Nuk ka staf" body="Shto anëtarin e parë të stafit për të hapur oraret." />
+            </li>
+          )}
         </ul>
 
         {selected && (
@@ -203,6 +236,8 @@ export function StaffPage() {
             </ul>
             {canEditHours && (
               <form onSubmit={addWindow} className="mt-4 flex flex-wrap gap-2">
+                <label className="field">
+                  <span className="field-label">Dita</span>
                 <select
                   className="input"
                   value={windowForm.dayOfWeek}
@@ -214,8 +249,15 @@ export function StaffPage() {
                     </option>
                   ))}
                 </select>
-                <input className="input" type="time" value={windowForm.startTime} onChange={(e) => setWindowForm({ ...windowForm, startTime: e.target.value })} />
-                <input className="input" type="time" value={windowForm.endTime} onChange={(e) => setWindowForm({ ...windowForm, endTime: e.target.value })} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Nga</span>
+                  <input className="input" type="time" value={windowForm.startTime} onChange={(e) => setWindowForm({ ...windowForm, startTime: e.target.value })} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Deri</span>
+                  <input className="input" type="time" value={windowForm.endTime} onChange={(e) => setWindowForm({ ...windowForm, endTime: e.target.value })} />
+                </label>
                 <button className="btn btn-primary py-2" type="submit">
                   Shto orar
                 </button>

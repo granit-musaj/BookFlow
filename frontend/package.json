@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test:e2e": "playwright test",
+    "test": "playwright test --project=chromium",
+    "test:e2e": "playwright test --project=chromium",
+    "test:smoke": "node ../scripts/run-smoke-with-env.cjs exec -- playwright test --project=smoke",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

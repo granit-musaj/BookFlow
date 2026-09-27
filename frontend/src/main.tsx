@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { App } from './app/App';
 import { AuthProvider } from './shared/auth/AuthContext';
 import { syncExplicitDemo } from './shared/lib/demo';
+import { AppBackdrop } from './shared/ui/AppBackdrop';
+import { ToastProvider } from './shared/ui/Toast';
 import './index.css';
 
 syncExplicitDemo();
@@ -12,7 +14,10 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <ToastProvider>
+          <AppBackdrop />
+          <App />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

@@ -1,6 +1,6 @@
 # BookFlow
 
-![CI](https://github.com/<user>/<repo>/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/granit-musaj/BookFlow/actions/workflows/ci.yml/badge.svg)
 
 Multi-tenant SaaS for small businesses to manage bookings, staff, and clients.
 
